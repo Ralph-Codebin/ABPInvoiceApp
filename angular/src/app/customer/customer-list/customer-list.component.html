@@ -1,0 +1,89 @@
+<div class="card">
+  <div class="card-header">
+    <div class="row">
+      <div class="col col-md-6">
+        <h5 class="card-title">{{ '::Menu:Customers' | abpLocalization }}</h5>
+      </div>
+      <div class="text-end col col-md-6">
+        <div class="text-lg-end pt-2">
+          <button id="create" class="btn btn-primary" type="button" (click)="createCustomer()">
+            <i class="fa fa-plus me-1"></i>
+            <span>{{ '::NewCustomer' | abpLocalization }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <ngx-datatable [rows]="customers.items" [count]="customers.totalCount" [list]="list" default>
+      <ngx-datatable-column [name]="'::Name' | abpLocalization" prop="name"></ngx-datatable-column>
+      <ngx-datatable-column [name]="'::Email' | abpLocalization" prop="email"></ngx-datatable-column>
+      <ngx-datatable-column [name]="'::Phone' | abpLocalization" prop="phone"></ngx-datatable-column>
+      <ngx-datatable-column [name]="'::Actions' | abpLocalization" [maxWidth]="150" [sortable]="false">
+        <ng-template let-row="row" ngx-datatable-cell-template>
+          <div ngbDropdown container="body" class="d-inline-block">
+            <button
+              class="btn btn-primary btn-sm dropdown-toggle"
+              data-toggle="dropdown"
+              aria-haspopup="true"
+              ngbDropdownToggle
+            >
+              <i class="fa fa-cog me-1"></i>{{ '::Actions' | abpLocalization }}
+            </button>
+            <div ngbDropdownMenu>
+              <button ngbDropdownItem [routerLink]="['/customers', row.id]">
+                {{ '::View' | abpLocalization }}
+              </button>
+              <button ngbDropdownItem (click)="editCustomer(row.id)">
+                {{ '::Edit' | abpLocalization }}
+              </button>
+              <button ngbDropdownItem (click)="delete(row.id)">
+                {{ '::Delete' | abpLocalization }}
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </ngx-datatable-column>
+    </ngx-datatable>
+  </div>
+</div>
+
+<abp-modal [(visible)]="isModalOpen">
+  <ng-template #abpHeader>
+    <h3>{{ (selectedCustomer.id ? '::Edit' : '::NewCustomer') | abpLocalization }}</h3>
+  </ng-template>
+
+  <ng-template #abpBody>
+    <form id="customer-form">
+      <div class="mb-3">
+        <label for="customer-name">{{ '::Name' | abpLocalization }} *</label>
+        <input type="text" id="customer-name" class="form-control" [(ngModel)]="selectedCustomer.name" name="name" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="customer-email">{{ '::Email' | abpLocalization }} *</label>
+        <input type="email" id="customer-email" class="form-control" [(ngModel)]="selectedCustomer.email" name="email" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="customer-phone">{{ '::Phone' | abpLocalization }}</label>
+        <input type="text" id="customer-phone" class="form-control" [(ngModel)]="selectedCustomer.phone" name="phone" />
+      </div>
+
+      <div class="mb-3">
+        <label for="customer-address">{{ '::BillingAddress' | abpLocalization }}</label>
+        <textarea id="customer-address" class="form-control" [(ngModel)]="selectedCustomer.billingAddress" name="billingAddress" rows="3"></textarea>
+      </div>
+    </form>
+  </ng-template>
+
+  <ng-template #abpFooter>
+    <button type="button" class="btn btn-secondary" abpClose>
+      {{ '::Close' | abpLocalization }}
+    </button>
+    <button type="button" class="btn btn-primary" (click)="save()">
+      <i class="fa fa-check me-1"></i>
+      {{ '::Save' | abpLocalization }}
+    </button>
+  </ng-template>
+</abp-modal>

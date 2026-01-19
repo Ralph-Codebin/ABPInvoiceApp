@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef:*)",
+      "Bash(npm run build:*)",
+      "Bash(powershell.exe -Command \"cd ''c:\\\\Temp\\\\delete\\\\angular''; npm run build 2>&1 | Select-Object -First 80\")"
+    ]
+  }
+}

@@ -1,0 +1,304 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a [routerLink]="['/invoices']">{{ '::Menu:Invoices' | abpLocalization }}</a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">
+            {{ invoice?.invoiceNumber || 'Invoice Details' }}
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Loading Spinner -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Invoice Header Card -->
+      <div *ngIf="!loading && invoice" class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            {{ '::InvoiceDetails' | abpLocalization }}: {{ invoice.invoiceNumber }}
+          </h5>
+          <div>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm me-2"
+              (click)="editInvoice()"
+              *ngIf="canEdit()"
+            >
+              <i class="fa fa-edit"></i> {{ '::Edit' | abpLocalization }}
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="goBack()">
+              <i class="fa fa-arrow-left"></i> {{ '::Back' | abpLocalization }}
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">{{ '::Customer' | abpLocalization }}:</dt>
+                <dd class="col-sm-8">
+                  <a [routerLink]="['/customers', invoice.customerId]" class="text-decoration-none">
+                    {{ invoice.customerName }}
+                  </a>
+                </dd>
+
+                <dt class="col-sm-4">{{ '::InvoiceDate' | abpLocalization }}:</dt>
+                <dd class="col-sm-8">{{ invoice.invoiceDate | date: 'longDate' }}</dd>
+
+                <dt class="col-sm-4">{{ '::DueDate' | abpLocalization }}:</dt>
+                <dd class="col-sm-8">
+                  {{ invoice.dueDate ? (invoice.dueDate | date: 'longDate') : '-' }}
+                </dd>
+              </dl>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">{{ '::Status' | abpLocalization }}:</dt>
+                <dd class="col-sm-8">
+                  <span [ngClass]="getStatusBadgeClass(invoice.status)">
+                    {{ getStatusName(invoice.status) }}
+                  </span>
+                </dd>
+
+                <dt class="col-sm-4">{{ '::CreatedAt' | abpLocalization }}:</dt>
+                <dd class="col-sm-8">{{ invoice.creationTime | date: 'short' }}</dd>
+
+                <dt class="col-sm-4" *ngIf="invoice.lastModificationTime">
+                  {{ '::LastModified' | abpLocalization }}:
+                </dt>
+                <dd class="col-sm-8" *ngIf="invoice.lastModificationTime">
+                  {{ invoice.lastModificationTime | date: 'short' }}
+                </dd>
+              </dl>
+
+              <!-- Status Update Section -->
+              <div class="mt-3 p-3 border rounded bg-light" *ngIf="canEdit()">
+                <label class="form-label fw-bold">{{ '::UpdateStatus' | abpLocalization }}:</label>
+                <div class="d-flex gap-2">
+                  <select class="form-select" [(ngModel)]="newStatus">
+                    <option [value]="0">Draft</option>
+                    <option [value]="1">Pending</option>
+                    <option [value]="2">Sent</option>
+                    <option [value]="3">Paid</option>
+                    <option [value]="4">Cancelled</option>
+                  </select>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    (click)="updateStatus()"
+                    [disabled]="isUpdatingStatus || newStatus === invoice.status"
+                  >
+                    <i class="fa fa-check"></i> {{ '::Update' | abpLocalization }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Line Items Card -->
+      <div *ngIf="!loading && invoice" class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">{{ '::LineItems' | abpLocalization }}</h5>
+          <button
+            type="button"
+            class="btn btn-success btn-sm"
+            (click)="showAddLineItem()"
+            *ngIf="canEdit() && !isAddingLineItem"
+          >
+            <i class="fa fa-plus"></i> {{ '::AddLineItem' | abpLocalization }}
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Empty State -->
+          <div *ngIf="!invoice.lineItems || invoice.lineItems.length === 0" class="text-center py-5 text-muted">
+            <i class="fa fa-list fa-3x mb-3"></i>
+            <p>{{ '::NoLineItemsFound' | abpLocalization }}</p>
+          </div>
+
+          <!-- Line Items Table -->
+          <div *ngIf="invoice.lineItems && invoice.lineItems.length > 0" class="table-responsive">
+            <table class="table table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 40%">{{ '::Description' | abpLocalization }}</th>
+                  <th class="text-end" style="width: 15%">{{ '::Quantity' | abpLocalization }}</th>
+                  <th class="text-end" style="width: 15%">{{ '::UnitPrice' | abpLocalization }}</th>
+                  <th class="text-end" style="width: 15%">{{ '::Total' | abpLocalization }}</th>
+                  <th class="text-center" style="width: 15%" *ngIf="canEdit()">
+                    {{ '::Actions' | abpLocalization }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Existing Line Items -->
+                <tr *ngFor="let item of invoice.lineItems">
+                  <ng-container *ngIf="editingLineItemId !== item.id">
+                    <td>{{ item.description }}</td>
+                    <td class="text-end">{{ item.quantity | number: '1.2-2' }}</td>
+                    <td class="text-end">{{ item.unitPrice | currency }}</td>
+                    <td class="text-end">{{ item.total | currency }}</td>
+                    <td class="text-center" *ngIf="canEdit()">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary me-1"
+                        (click)="startEditLineItem(item)"
+                      >
+                        <i class="fa fa-edit"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        (click)="deleteLineItem(item.id)"
+                      >
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <!-- Edit Mode -->
+                  <ng-container *ngIf="editingLineItemId === item.id">
+                    <td>
+                      <input
+                        type="text"
+                        class="form-control form-control-sm"
+                        [(ngModel)]="editLineItem.description"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="form-control form-control-sm text-end"
+                        [(ngModel)]="editLineItem.quantity"
+                        min="0.01"
+                        step="0.01"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="form-control form-control-sm text-end"
+                        [(ngModel)]="editLineItem.unitPrice"
+                        min="0"
+                        step="0.01"
+                      />
+                    </td>
+                    <td class="text-end align-middle">
+                      {{ calculateLineItemTotal(editLineItem.quantity, editLineItem.unitPrice) | currency }}
+                    </td>
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-success me-1"
+                        (click)="saveEditLineItem()"
+                      >
+                        <i class="fa fa-check"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-secondary"
+                        (click)="cancelEditLineItem()"
+                      >
+                        <i class="fa fa-times"></i>
+                      </button>
+                    </td>
+                  </ng-container>
+                </tr>
+
+                <!-- Add New Line Item Row -->
+                <tr *ngIf="isAddingLineItem" class="table-success">
+                  <td>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      [(ngModel)]="newLineItem.description"
+                      placeholder="Enter description"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm text-end"
+                      [(ngModel)]="newLineItem.quantity"
+                      min="0.01"
+                      step="0.01"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm text-end"
+                      [(ngModel)]="newLineItem.unitPrice"
+                      min="0"
+                      step="0.01"
+                    />
+                  </td>
+                  <td class="text-end align-middle">
+                    {{ calculateLineItemTotal(newLineItem.quantity, newLineItem.unitPrice) | currency }}
+                  </td>
+                  <td class="text-center">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success me-1"
+                      (click)="saveNewLineItem()"
+                      [disabled]="!newLineItem.description"
+                    >
+                      <i class="fa fa-check"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-secondary"
+                      (click)="cancelAddLineItem()"
+                    >
+                      <i class="fa fa-times"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Summary Card -->
+      <div *ngIf="!loading && invoice" class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">{{ '::FinancialSummary' | abpLocalization }}</h5>
+        </div>
+        <div class="card-body">
+          <div class="row justify-content-end">
+            <div class="col-md-6 col-lg-4">
+              <table class="table table-borderless">
+                <tr>
+                  <td class="text-end fw-bold">{{ '::SubTotal' | abpLocalization }}:</td>
+                  <td class="text-end">{{ invoice.subTotal | currency }}</td>
+                </tr>
+                <tr>
+                  <td class="text-end fw-bold">{{ '::TaxAmount' | abpLocalization }}:</td>
+                  <td class="text-end">{{ invoice.taxAmount | currency }}</td>
+                </tr>
+                <tr class="border-top">
+                  <td class="text-end fw-bold fs-5">{{ '::GrandTotal' | abpLocalization }}:</td>
+                  <td class="text-end fw-bold fs-5">{{ invoice.grandTotal | currency }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
