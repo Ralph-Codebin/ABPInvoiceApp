@@ -1,6 +1,6 @@
 # Customer & Invoice Management System
 
-[Watch the video](./video.mp4)
+[Watch the video](https://drive.google.com/file/d/1yU5xuukio-bCvhKgHgtdwnVnNEX5MAB-/view?usp=sharing)
 
 A modern, full-stack application built with the ABP Framework for managing customers and invoices. Features a .NET backend API with Entity Framework Core and an Angular frontend with responsive UI.
 
